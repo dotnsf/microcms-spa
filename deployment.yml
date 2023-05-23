@@ -1,0 +1,81 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: spa-app
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: spa-app
+  template:
+    metadata:
+      labels:
+        app: spa-app
+    spec:
+      containers:
+      - name: spa-app
+        image: webapp
+        # for local development against minikube registry
+        #imagePullPolicy: Never        
+        ports:
+        - containerPort: 8080
+#        resources:
+#           limits:
+#             memory: 32Mi
+#             cpu: 125m
+#           requests:
+#             memory: 32Mi
+#             cpu: 125m
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spa-app-service
+  labels:
+    app: spa-app-service
+spec:
+  type: NodePort
+  ports:
+    # the port that this service should serve on
+    - port: 3000
+      targetPort: 8080
+  # label keys and values that must match in order to receive traffic for this service
+  selector:
+    app: spa-app
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: spa-app-service-cip
+  labels:
+    app: spa-app
+spec:
+  type: ClusterIP
+  ports:
+    # the port that this service should serve on
+    - port: 3000
+      targetPort: 8080
+  # label keys and values that must match in order to receive traffic for this service
+  selector:
+    app: spa-app
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: spa-app-ingress
+spec:
+  rules:
+  - host: auth0-spa.cluster-ingress-subdomain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: spa-app-service-cip
+            port:
+              number: 3000
+  tls:
+  - hosts:
+    - spa-app.cluster-ingress-subdomain
+    secretName: cluster-ingress-secret
